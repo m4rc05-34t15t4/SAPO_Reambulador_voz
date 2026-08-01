@@ -1,0 +1,1 @@
+python -m PyInstaller --paths Lib/site-packages --icon=sapo_reambulador_digitando.ico --noconfirm --add-data "whisper;whisper" --add-binary "sqlite3.dll;dll" --add-data "ffmpeg;ffmpeg" --hidden-import=sqlite3 --hidden-import=_sqlite3 --distpath ../ --name=sapo_audio_desc_point main.py

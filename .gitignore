@@ -1,0 +1,25 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Dados do usuário e arquivos gerados em tempo de execução
+audios/*
+geojson/*.geojson
+current_gps.json
+*.tmp
+
+# Pasta do executável gerado e ambiente de dev
+sapo_audio_desc_point/
+audio_desc_app/.venv_dev/
+audio_desc_app/Lib/
+audio_desc_app/Scripts/
+audio_desc_app/Include/
+audio_desc_app/share/
+audio_desc_app/pyvenv.cfg
+audio_desc_app/build/
+audio_desc_app/dist/
+audio_desc_app/ffmpeg/
+audio_desc_app/whisper/
+audio_desc_app/*.dll
+audio_desc_app/*.spec

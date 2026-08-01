@@ -1,0 +1,9 @@
+.venv_dev/
+build/
+dist/
+__pycache__/
+*.exe
+*.dll
+ffmpeg/
+whisper/
+*.spec
