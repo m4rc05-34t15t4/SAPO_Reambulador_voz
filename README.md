@@ -49,6 +49,9 @@ SAPO_Reambulador_voz/
 │   └── requirements.txt
 ├── icons/                       # Ícones e recursos visuais do plugin
 └── libs/                        # Dependências auxiliares do plugin
+└── sapo_audio_desc_point/      # Baixar via link acima ( Para usuáriso comuns)
+   ├── sapo_audio_desc_point.exe       
+   ├── _internal/ 
 ```
 
 ---
