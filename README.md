@@ -74,11 +74,27 @@ configurar_ambiente_dev.bat
 Antes de executar a compilação do executável no Passo 3, você deve garantir que as seguintes pastas existam dentro de `audio_desc_app/`:
 
 1. **Pasta `audio_desc_app/ffmpeg/`**:
-   - Baixe os binários compilados do **FFmpeg para Windows** (ex: do site gyan.dev ou repositório oficial do FFmpeg).
-   - Extraia o executável `ffmpeg.exe` (e `ffprobe.exe`) dentro da pasta `audio_desc_app/ffmpeg/`.
+   - Baixe os binários compilados do **FFmpeg para Windows** (ex: do site [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) ou repositório oficial).
+   - Extraia a pasta de forma que o `ffmpeg.exe` fique dentro da subpasta `bin/`:
+     ```text
+     audio_desc_app/ffmpeg/
+     ├── bin/
+     │   ├── ffmpeg.exe
+     │   ├── ffplay.exe
+     │   └── ffprobe.exe
+     ├── doc/
+     ├── presets/
+     ├── LICENSE
+     └── README.txt
+     ```
 
 2. **Pasta `audio_desc_app/whisper/`**:
-   - Inclua a pasta da biblioteca/modelos do **Whisper** no caminho `audio_desc_app/whisper/`.
+   - Inclua os modelos da IA Whisper (ex: `small.pt`) e a pasta `assets/`:
+     ```text
+     audio_desc_app/whisper/
+     ├── assets/
+     └── small.pt
+     ```
 
 ---
 
