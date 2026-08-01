@@ -67,9 +67,24 @@ configurar_ambiente_dev.bat
 
 ---
 
-### 2️⃣ **Passo 2: Gerar o Executável (.exe)**
+### 2️⃣ **Passo 2: Baixar os Binários do FFmpeg e Recursos do Whisper**
 
-Após a conclusão da configuração do ambiente, execute o arquivo `gerar_exe.bat`:
+> ⚠️ **IMPORTANTE (Limite do GitHub):** Devido ao tamanho elevado dos arquivos executáveis do **FFmpeg** e dos pacotes de modelos da IA **Whisper**, essas duas pastas **não são armazenadas no repositório do GitHub**.
+
+Antes de executar a compilação do executável no Passo 3, você deve garantir que as seguintes pastas existam dentro de `audio_desc_app/`:
+
+1. **Pasta `audio_desc_app/ffmpeg/`**:
+   - Baixe os binários compilados do **FFmpeg para Windows** (ex: do site gyan.dev ou repositório oficial do FFmpeg).
+   - Extraia o executável `ffmpeg.exe` (e `ffprobe.exe`) dentro da pasta `audio_desc_app/ffmpeg/`.
+
+2. **Pasta `audio_desc_app/whisper/`**:
+   - Inclua a pasta da biblioteca/modelos do **Whisper** no caminho `audio_desc_app/whisper/`.
+
+---
+
+### 3️⃣ **Passo 3: Gerar o Executável (.exe)**
+
+Após a configuração do ambiente e a inclusão das pastas `ffmpeg/` e `whisper/`, execute o arquivo `gerar_exe.bat`:
 
 ```cmd
 gerar_exe.bat
