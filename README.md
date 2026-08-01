@@ -17,6 +17,18 @@ O sistema gera e sincroniza em tempo real camadas geográficas em formato **GeoJ
 
 ---
 
+## 📥 Download do Executável Pronto (Para Usuários Comuns)
+
+Se você **não é desenvolvedor** e deseja utilizar o plugin sem precisar instalar o Python ou compilar o código:
+
+👉 **[Baixar SAPO Audio Point v1.0.0 (.ZIP)](https://github.com/m4rc05-34t15t4/SAPO_Reambulador_voz/releases/tag/v1.0.0)**
+
+> 📌 **Como usar:**  
+> 1. Baixe o arquivo `.zip` da aba de Releases no link acima.  
+> 2. Extraia o conteúdo diretamente dentro da pasta do plugin `Sapo_reambulacao_voz` (para que a pasta `sapo_audio_desc_point` fique ao lado do `sapo.py`).
+
+---
+
 ## 📁 Estrutura do Repositório
 
 ```text
