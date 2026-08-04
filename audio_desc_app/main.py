@@ -37,6 +37,8 @@ if __name__ == "__main__":
             raise Exception(f"Erro ao configurar o FFmpeg.")
         else:
             print_log(f"Versão: {VERSAO}", "info")
+            mic_ativo = obter_nome_microfone_ativo()
+            print_log(f"🎤 Microfone Detectado: {mic_ativo}", "info", negrito=True)
             print_log(f"Pressione e segure a tecla 'Espaço' para começar a gravar.\nSolte a tecla para salvar o áudio.", "alert")
             while True:
                 # Aguarda o usuário pressionar a tecla espaço

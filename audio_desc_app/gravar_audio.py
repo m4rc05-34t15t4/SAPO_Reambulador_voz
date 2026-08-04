@@ -23,6 +23,56 @@ OUTPUT_DIR = os.path.join(DIRETORIO_ANTERIOR, "audios")
 TEMPO_MIN_SEGUNDOS = 1
 INDEX_MICROFONE = 1
 
+def selecionar_microfone(audio):
+    """
+    Lista os microfones disponíveis e seleciona preferencialmente fones Bluetooth / Headsets conectados.
+    Retorna (index, nome_do_microfone).
+    """
+    dispositivos = []
+    default_index = None
+    default_name = "Padrão do Sistema"
+
+    try:
+        default_info = audio.get_default_input_device_info()
+        default_index = default_info.get('index')
+        default_name = default_info.get('name', 'Padrão do Sistema')
+    except Exception:
+        pass
+
+    count = audio.get_device_count()
+    for i in range(count):
+        try:
+            info = audio.get_device_info_by_index(i)
+            if info.get('maxInputChannels', 0) > 0:
+                dispositivos.append((i, info.get('name', '')))
+        except Exception:
+            continue
+
+    keywords = ["bluetooth", "headset", "headphone", "fone", "hands-free", "wireless", "auricular", "microfone externo"]
+
+    # 1. Tenta achar microfone Bluetooth ou Fone de Ouvido
+    for idx, name in dispositivos:
+        name_lower = name.lower()
+        if any(kw in name_lower for kw in keywords):
+            return idx, name
+
+    # 2. Se não achar específico, usa o dispositivo de entrada Padrão do Windows
+    if default_index is not None:
+        return default_index, default_name
+    elif dispositivos:
+        return dispositivos[0][0], dispositivos[0][1]
+    
+    return None, "Microfone Padrão"
+
+def obter_nome_microfone_ativo():
+    try:
+        audio = pyaudio.PyAudio()
+        _, dev_name = selecionar_microfone(audio)
+        audio.terminate()
+        return dev_name
+    except Exception:
+        return "Padrão do Sistema"
+
 def get_microfone(audio):
     stream = None
     for i in range(audio.get_device_count()):
@@ -73,24 +123,32 @@ def encontrar_microfone_valido():
 
 def record_audio():
     """Grava o áudio enquanto a tecla espaço é pressionada."""
-    #audio, stream, index, rate, channels = encontrar_microfone_valido()
-    
-    #print(audio, stream, index, rate, channels)
-
-    #selecionar lista de microfone
-    
-    #get_microfone(audio)
-    #stream = None
     try:
-
         audio = pyaudio.PyAudio()
-        #stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, input_device_index=INDEX_MICROFONE, frames_per_buffer=CHUNK)
-        stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
+        dev_index, dev_name = selecionar_microfone(audio)
+        print_log(f"🎤 Microfone em Uso: {dev_name}", "info")
+
+        open_kwargs = {
+            "format": FORMAT,
+            "channels": CHANNELS,
+            "rate": RATE,
+            "input": True,
+            "frames_per_buffer": CHUNK
+        }
+        if dev_index is not None:
+            open_kwargs["input_device_index"] = dev_index
+
+        try:
+            stream = audio.open(**open_kwargs)
+        except Exception as e:
+            print_log(f"Aviso ({dev_name}): {e}. Tentando entrada padrão...", "warning")
+            stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
+
         frames = []
         print_msg_start_gravar = False
         try:
             while keyboard.is_pressed("space"):
-                data = stream.read(CHUNK)
+                data = stream.read(CHUNK, exception_on_overflow=False)
                 frames.append(data)
                 if not print_msg_start_gravar:
                     print("Gravando... Pressione e segure 'Espaço'.")
@@ -102,7 +160,7 @@ def record_audio():
             stream.close()
             audio.terminate()
             return frames, audio
-    
+
     except Exception as e:
         print_log(f"Erro no Microfone: {e}", "danger")
         return None, None
