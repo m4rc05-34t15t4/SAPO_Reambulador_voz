@@ -21,7 +21,7 @@ O sistema gera e sincroniza em tempo real camadas geográficas em formato **GeoJ
 
 Se você **não é desenvolvedor** e deseja utilizar o plugin sem precisar instalar o Python ou compilar o código:
 
-### 📦 Opção 1: Download pelas Partes do Repositório (Dividido em partes < 90 MB)
+### 📦 Download pelas Partes do Repositório (Dividido em partes < 90 MB)
 
 Como o executável completo compactado tem cerca de **790 MB** (devido ao PyTorch e modelos do Whisper) e o GitHub limita arquivos a 100 MB, o arquivo foi dividido na raiz do repositório em 9 partes: `SAPO_Audio_Point_v1.1.0.zip.001` até `SAPO_Audio_Point_v1.1.0.zip.009`.
 
