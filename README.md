@@ -42,17 +42,6 @@ Como o executável completo compactado tem cerca de **790 MB** (devido ao PyTorc
 
 ---
 
-### 🌐 Opção 2: Download em Arquivo Único (Google Drive)
-
-Se preferir baixar o arquivo comprimido único completo em um único clique:
-
-👉 **[Baixar SAPO Audio Point v1.1.0 (Arquivo Único .ZIP via Google Drive)](https://drive.google.com/file/d/1E1Zy6ORgHYAFOX2ejUI6vNvWalxG5CLD/view?usp=sharing)**
-
-> 📌 **Como usar:**  
-> Extraia a pasta `sapo_audio_desc_point` diretamente dentro do diretório do seu plugin (`Sapo_reambulacao_voz`), ficando no mesmo nível do `sapo.py`.
-
----
-
 ## 📁 Estrutura do Repositório
 
 ```text
