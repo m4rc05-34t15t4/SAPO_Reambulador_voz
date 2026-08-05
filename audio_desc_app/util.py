@@ -14,6 +14,7 @@ print(Style.RESET_ALL)# Encerrando com reset (garante que nada fique "preso" no 
 """
 
 blue_light = '\033[94m'
+pink_light = '\033[38;5;218m'  # Rosa claro suave em ANSI
 
 def print_log(msg, color="sucess", negrito=False, reset=Style.RESET_ALL):
 
@@ -24,6 +25,8 @@ def print_log(msg, color="sucess", negrito=False, reset=Style.RESET_ALL):
         cor = Fore.YELLOW
     elif color == "info":
         cor = blue_light
+    elif color == "pink" or color == "transcricao":
+        cor = pink_light
     elif color == "sucess":
         cor = Fore.GREEN
 

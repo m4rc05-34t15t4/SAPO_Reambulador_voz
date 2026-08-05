@@ -118,16 +118,22 @@ def add_point_feature(self, description, d_gps):
 
     # Funções de higienização de valores
     def clean_float(val):
+        if val is None or val == "" or val == "nan":
+            return None
         try:
-            return float(val) if val is not None else 0.0
+            import math
+            f = float(val)
+            return None if (math.isnan(f) or math.isinf(f)) else f
         except (ValueError, TypeError):
-            return 0.0
+            return None
 
     def clean_int(val):
+        if val is None or val == "":
+            return None
         try:
-            return int(val) if val is not None else 0
+            return int(val)
         except (ValueError, TypeError):
-            return 0
+            return None
 
     # 1. Carrega ou inicializa a estrutura do GeoJSON
     if os.path.exists(geojson_path):

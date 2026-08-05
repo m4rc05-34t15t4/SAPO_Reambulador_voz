@@ -23,19 +23,34 @@ OUTPUT_DIR = os.path.join(DIRETORIO_ANTERIOR, "audios")
 TEMPO_MIN_SEGUNDOS = 1
 INDEX_MICROFONE = 1
 
-def selecionar_microfone(audio):
-    """
-    Lista os microfones disponíveis e seleciona preferencialmente fones Bluetooth / Headsets conectados.
-    Retorna (index, nome_do_microfone).
-    """
-    dispositivos = []
-    default_index = None
-    default_name = "Padrão do Sistema"
+MICROFONE_SELECIONADO_INDEX = None
+MICROFONE_SELECIONADO_NOME = None
 
+def listar_dispositivos_entrada(audio):
+    """
+    Lista os dispositivos de entrada da API MME do Windows.
+    Retorna o Padrão do Sistema e os microfones reais conectados com seus nomes completos (ex: Headset (UGREEN HiTune Max5c)).
+    """
+    dispositivos_filtrados = []
+    nomes_vistos = set()
+
+    # 1. Padrão do Sistema
     try:
         default_info = audio.get_default_input_device_info()
-        default_index = default_info.get('index')
-        default_name = default_info.get('name', 'Padrão do Sistema')
+        def_name = default_info.get('name', 'Padrão do Sistema')
+        dispositivos_filtrados.append((None, f"Padrão do Sistema ({def_name})"))
+        nomes_vistos.add(def_name.lower())
+    except Exception:
+        dispositivos_filtrados.append((None, "Padrão do Sistema"))
+
+    # 2. Obter índice da Host API 'MME' (dispositivos amigáveis de alto nível do Windows)
+    mme_api_index = None
+    try:
+        for i in range(audio.get_host_api_count()):
+            api_info = audio.get_host_api_info_by_index(i)
+            if api_info.get('name') == 'MME':
+                mme_api_index = i
+                break
     except Exception:
         pass
 
@@ -44,89 +59,163 @@ def selecionar_microfone(audio):
         try:
             info = audio.get_device_info_by_index(i)
             if info.get('maxInputChannels', 0) > 0:
-                dispositivos.append((i, info.get('name', '')))
+                # Filtra apenas a API MME do Windows para evitar canais brutos do WDM-KS
+                if mme_api_index is not None and info.get('hostApi') != mme_api_index:
+                    continue
+
+                name = info.get('name', '').strip()
+                name_lower = name.lower()
+
+                # Ignorar entradas virtuais/mapeadores genéricos
+                if 'mapeador' in name_lower or 'mapper' in name_lower:
+                    continue
+
+                if name_lower not in nomes_vistos:
+                    nomes_vistos.add(name_lower)
+                    dispositivos_filtrados.append((i, name))
         except Exception:
             continue
 
-    keywords = ["bluetooth", "headset", "headphone", "fone", "hands-free", "wireless", "auricular", "microfone externo"]
+    return dispositivos_filtrados
 
-    # 1. Tenta achar microfone Bluetooth ou Fone de Ouvido
-    for idx, name in dispositivos:
-        name_lower = name.lower()
-        if any(kw in name_lower for kw in keywords):
-            return idx, name
+import threading
+import tkinter as tk
+from tkinter import ttk
 
-    # 2. Se não achar específico, usa o dispositivo de entrada Padrão do Windows
-    if default_index is not None:
-        return default_index, default_name
-    elif dispositivos:
-        return dispositivos[0][0], dispositivos[0][1]
-    
-    return None, "Microfone Padrão"
+CONFIG_INDICADOR_VISUAL = True
 
-def obter_nome_microfone_ativo():
-    try:
-        audio = pyaudio.PyAudio()
-        _, dev_name = selecionar_microfone(audio)
-        audio.terminate()
-        return dev_name
-    except Exception:
-        return "Padrão do Sistema"
+class IndicadorGravacao:
+    """
+    Exibe um selo flutuante vermelho com o ícone de microfone no canto superior direito da tela enquanto o usuário grava.
+    """
+    def __init__(self):
+        self.root = None
 
-def get_microfone(audio):
-    stream = None
-    for i in range(audio.get_device_count()):
-        try:
-            info = audio.get_device_info_by_index(i)
-            print(f"{i}: {info['name']} - Input Channels: {info['maxInputChannels']}")
-            stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, input_device_index=i, frames_per_buffer=CHUNK)
-            return stream
-        except Exception as e:
-            print(f"Erro mic: {e}")
-    return stream
+    def mostrar(self):
+        if not CONFIG_INDICADOR_VISUAL:
+            return
 
+        def _run():
+            try:
+                self.root = tk.Tk()
+                self.root.overrideredirect(True)
+                self.root.attributes('-topmost', True)
+                
+                sw = self.root.winfo_screenwidth()
+                w, h = 175, 45
+                x = sw - w - 25
+                y = 35
+                self.root.geometry(f"{w}x{h}+{x}+{y}")
+                self.root.configure(bg="#D32F2F")
 
-POSSIVEIS_RATES = [44100, 16000, 8000]
-POSSIVEIS_CHANNELS = [1, 2]
+                lbl = tk.Label(
+                    self.root, 
+                    text="🎙️ GRAVANDO...", 
+                    font=("Segoe UI", 11, "bold"), 
+                    fg="white", 
+                    bg="#D32F2F"
+                )
+                lbl.pack(expand=True, fill="both", padx=5, pady=5)
+                self.root.mainloop()
+            except Exception:
+                pass
 
-def encontrar_microfone_valido():
+        self.thread = threading.Thread(target=_run, daemon=True)
+        self.thread.start()
+
+    def fechar(self):
+        if self.root is not None:
+            try:
+                self.root.after(0, self.root.destroy)
+            except Exception:
+                pass
+            self.root = None
+
+def abrir_janela_selecao_microfone():
+    """
+    Abre uma caixa de diálogo gráfica para o usuário escolher de qual microfone virá o áudio
+    e configurar se deseja o selo visual na tela.
+    """
+    global MICROFONE_SELECIONADO_INDEX, MICROFONE_SELECIONADO_NOME, CONFIG_INDICADOR_VISUAL
     audio = pyaudio.PyAudio()
-    dispositivos_validos = []
-
-    print("\nDispositivos disponíveis:")
-    for i in range(audio.get_device_count()):
-        info = audio.get_device_info_by_index(i)
-        entradas = info.get('maxInputChannels', 0)
-        nome = info.get('name', 'Desconhecido')
-        print(f"ID {i}: {nome} | Entradas: {entradas}")
-        if entradas > 0:
-            dispositivos_validos.append((i, nome))
-
-    for index, nome in dispositivos_validos:
-        for rate in POSSIVEIS_RATES:
-            for channels in POSSIVEIS_CHANNELS:
-                try:
-                    print(f"Tentando microfone ID {index} - {nome} | rate={rate} | channels={channels}")
-                    stream = audio.open(format=FORMAT,
-                                        channels=channels,
-                                        rate=rate,
-                                        input=True,
-                                        input_device_index=index,
-                                        frames_per_buffer=CHUNK)
-                    print(f"✅ FUNCIONOU: ID {index} - {nome} | rate={rate} | channels={channels}")
-                    return audio, stream, index, rate, channels
-                except Exception as e:
-                    print(f"❌ Erro com ID {index} | rate={rate} | channels={channels}: {e}")
-
+    dispositivos = listar_dispositivos_entrada(audio)
     audio.terminate()
-    raise Exception("Nenhum microfone válido encontrado.")
+
+    if not dispositivos:
+        MICROFONE_SELECIONADO_INDEX = None
+        MICROFONE_SELECIONADO_NOME = "Padrão do Sistema"
+        return MICROFONE_SELECIONADO_INDEX, MICROFONE_SELECIONADO_NOME
+
+    index_padrao = 0
+    keywords = ["ugreen", "hitune", "max5c", "bluetooth", "headset", "headphone", "fone", "hands-free", "wireless"]
+    for idx, (dev_idx, dev_name) in enumerate(dispositivos):
+        if any(kw in dev_name.lower() for kw in keywords):
+            index_padrao = idx
+            break
+
+    try:
+        resultado = {"index": dispositivos[index_padrao][0], "nome": dispositivos[index_padrao][1]}
+
+        root = tk.Tk()
+        root.title("SAPO - Selecionar Microfone e Opções")
+        root.geometry("500x240")
+        root.resizable(False, False)
+        root.attributes('-topmost', True)
+
+        root.update_idletasks()
+        width = root.winfo_width()
+        height = root.winfo_height()
+        x = (root.winfo_screenwidth() // 2) - (width // 2)
+        y = (root.winfo_screenheight() // 2) - (height // 2)
+        root.geometry(f'{width}x{height}+{x}+{y}')
+
+        style = ttk.Style()
+        style.theme_use('clam')
+
+        lbl = ttk.Label(root, text="🎤 Escolha o Microfone para Gravação de Áudio:", font=("Segoe UI", 11, "bold"))
+        lbl.pack(pady=(15, 8))
+
+        nomes = [f"{name}" for idx, name in dispositivos]
+        combo = ttk.Combobox(root, values=nomes, state="readonly", font=("Segoe UI", 10), width=48)
+        combo.current(index_padrao)
+        combo.pack(pady=5)
+
+        var_indicador = tk.BooleanVar(value=CONFIG_INDICADOR_VISUAL)
+
+        chk_indicador = ttk.Checkbutton(root, text="Exibir selo visual (🎙️ Gravando) no canto superior direito", variable=var_indicador)
+        chk_indicador.pack(anchor="w", padx=35, pady=(12, 10))
+
+        def on_confirmar():
+            global CONFIG_INDICADOR_VISUAL
+            idx_selecionado = combo.current()
+            if idx_selecionado >= 0:
+                resultado["index"] = dispositivos[idx_selecionado][0]
+                resultado["nome"] = dispositivos[idx_selecionado][1]
+            CONFIG_INDICADOR_VISUAL = var_indicador.get()
+            root.destroy()
+
+        btn = ttk.Button(root, text="  Confirmar e Iniciar  ", command=on_confirmar)
+        btn.pack(pady=(10, 10))
+
+        root.protocol("WM_DELETE_WINDOW", on_confirmar)
+        root.mainloop()
+
+        MICROFONE_SELECIONADO_INDEX = resultado["index"]
+        MICROFONE_SELECIONADO_NOME = resultado["nome"]
+    except Exception as e:
+        print_log(f"Aviso ao abrir janela GUI: {e}. Usando microfone padrão.", "warning")
+        MICROFONE_SELECIONADO_INDEX = dispositivos[index_padrao][0]
+        MICROFONE_SELECIONADO_NOME = dispositivos[index_padrao][1]
+
+    return MICROFONE_SELECIONADO_INDEX, MICROFONE_SELECIONADO_NOME
 
 def record_audio():
     """Grava o áudio enquanto a tecla espaço é pressionada."""
+    global MICROFONE_SELECIONADO_INDEX, MICROFONE_SELECIONADO_NOME
     try:
         audio = pyaudio.PyAudio()
-        dev_index, dev_name = selecionar_microfone(audio)
-        print_log(f"🎤 Microfone em Uso: {dev_name}", "info")
+        if MICROFONE_SELECIONADO_NOME is None:
+            MICROFONE_SELECIONADO_INDEX, MICROFONE_SELECIONADO_NOME = abrir_janela_selecao_microfone()
 
         open_kwargs = {
             "format": FORMAT,
@@ -135,27 +224,31 @@ def record_audio():
             "input": True,
             "frames_per_buffer": CHUNK
         }
-        if dev_index is not None:
-            open_kwargs["input_device_index"] = dev_index
+        if MICROFONE_SELECIONADO_INDEX is not None:
+            open_kwargs["input_device_index"] = MICROFONE_SELECIONADO_INDEX
 
         try:
             stream = audio.open(**open_kwargs)
         except Exception as e:
-            print_log(f"Aviso ({dev_name}): {e}. Tentando entrada padrão...", "warning")
+            print_log(f"Aviso ({MICROFONE_SELECIONADO_NOME}): {e}. Tentando entrada padrão...", "warning")
             stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
 
+        indicador = IndicadorGravacao()
         frames = []
         print_msg_start_gravar = False
         try:
             while keyboard.is_pressed("space"):
-                data = stream.read(CHUNK, exception_on_overflow=False)
-                frames.append(data)
                 if not print_msg_start_gravar:
+                    indicador.mostrar()
                     print("Gravando... Pressione e segure 'Espaço'.")
                     print_msg_start_gravar = True
+
+                data = stream.read(CHUNK, exception_on_overflow=False)
+                frames.append(data)
         except Exception as e:
             print(f"Erro durante a gravação: {e}")
         finally:
+            indicador.fechar()
             stream.stop_stream()
             stream.close()
             audio.terminate()

@@ -48,6 +48,9 @@ def get_model_path():
 
     return model_path
 
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+
 def transcribe_audio_whisper(audio_file_path):
     # Carrega o modelo (use "small" para velocidade, "large" para mais precisão)
     model = None
@@ -62,8 +65,10 @@ def transcribe_audio_whisper(audio_file_path):
         print(f"Erro: {e}")
         model = whisper.load_model("small", download_root=None)
     
-    # Transcreve o áudio
-    result = model.transcribe(audio_file_path, language="pt")
+    # Transcreve o áudio sem avisos de FP16 no CPU
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        result = model.transcribe(audio_file_path, language="pt", fp16=False)
     # Retorna o texto transcrito
     return result['text']
 

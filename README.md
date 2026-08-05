@@ -21,11 +21,35 @@ O sistema gera e sincroniza em tempo real camadas geográficas em formato **GeoJ
 
 Se você **não é desenvolvedor** e deseja utilizar o plugin sem precisar instalar o Python ou compilar o código:
 
-👉 **[Baixar SAPO Audio Point v1.0.0 (.ZIP via Google Drive)](https://drive.google.com/file/d/1E1Zy6ORgHYAFOX2ejUI6vNvWalxG5CLD/view?usp=sharing)**
+### 📦 Opção 1: Download pelas Partes do Repositório (Dividido em partes < 90 MB)
+
+Como o executável completo compactado tem cerca de **790 MB** (devido ao PyTorch e modelos do Whisper) e o GitHub limita arquivos a 100 MB, o arquivo foi dividido na raiz do repositório em 9 partes: `SAPO_Audio_Point_v1.1.0.zip.001` até `SAPO_Audio_Point_v1.1.0.zip.009`.
+
+> 📌 **Como Extrair as Partes (Passo a Passo):**  
+> 
+> **Método A: Usando 7-Zip ou WinRAR (Recomendado)**
+> 1. Baixe todas as partes (`.zip.001`, `.zip.002` ... `.zip.009`) para a mesma pasta.
+> 2. Clique com o botão direito no arquivo **`SAPO_Audio_Point_v1.1.0.zip.001`**.
+> 3. Escolha **7-Zip > Extrair Aqui** ou **WinRAR > Extrair Aqui**. O descompactador unirá automaticamente todas as partes!
+>
+> **Método B: Via Linha de Comando (Prompt do Windows / PowerShell)**
+> 1. Abra o Terminal/Prompt de Comando na pasta onde baixou as partes.
+> 2. Execute o comando para juntar as partes em um único `.zip`:
+>    ```cmd
+>    copy /b SAPO_Audio_Point_v1.1.0.zip.00* SAPO_Audio_Point_v1.1.0.zip
+>    ```
+> 3. Clique duas vezes no arquivo `SAPO_Audio_Point_v1.1.0.zip` gerado e extraia a pasta `sapo_audio_desc_point`.
+
+---
+
+### 🌐 Opção 2: Download em Arquivo Único (Google Drive)
+
+Se preferir baixar o arquivo comprimido único completo em um único clique:
+
+👉 **[Baixar SAPO Audio Point v1.1.0 (Arquivo Único .ZIP via Google Drive)](https://drive.google.com/file/d/1E1Zy6ORgHYAFOX2ejUI6vNvWalxG5CLD/view?usp=sharing)**
 
 > 📌 **Como usar:**  
-> 1. Baixe o arquivo `.zip` pelo link do Google Drive acima.  
-> 2. Extraia o conteúdo diretamente dentro da pasta do seu plugin `Sapo_reambulacao_voz` (de forma que a pasta `sapo_audio_desc_point` fique no mesmo diretório do `sapo.py`).
+> Extraia a pasta `sapo_audio_desc_point` diretamente dentro do diretório do seu plugin (`Sapo_reambulacao_voz`), ficando no mesmo nível do `sapo.py`.
 
 ---
 

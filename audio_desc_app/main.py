@@ -21,7 +21,7 @@ AUDIO_PATH = DIRETORIO_ANTERIOR+"/audios/"
 PATH_GEOJSON = DIRETORIO_ANTERIOR+"/geojson"
 ARQ_GEOJSON = "dados_audio.geojson"
 TABLE_NAME = "Pontos_Audio"
-VERSAO = "1.0.0"
+VERSAO = "1.1.0"
 #PATH_SQLITE = DIRETORIO_ANTERIOR+"/sqlite"
 #AUDIO_PATH = "../audios/"
 #PATH_SQLITE = "../sqlite"
@@ -37,8 +37,8 @@ if __name__ == "__main__":
             raise Exception(f"Erro ao configurar o FFmpeg.")
         else:
             print_log(f"Versão: {VERSAO}", "info")
-            mic_ativo = obter_nome_microfone_ativo()
-            print_log(f"🎤 Microfone Detectado: {mic_ativo}", "info", negrito=True)
+            _, mic_ativo = abrir_janela_selecao_microfone()
+            print_log(f"🎤 Microfone Ativo Selecionado: {mic_ativo}", "info", negrito=True)
             print_log(f"Pressione e segure a tecla 'Espaço' para começar a gravar.\nSolte a tecla para salvar o áudio.", "alert")
             while True:
                 # Aguarda o usuário pressionar a tecla espaço
@@ -59,41 +59,69 @@ if __name__ == "__main__":
                         except Exception as e:
                             print_log(f"Erro ao ler JSON: {e}", "warning")
 
+                        def clean_float(val):
+                            if val is None or val == "" or val == "nan":
+                                return None
+                            try:
+                                import math
+                                f = float(val)
+                                return None if (math.isnan(f) or math.isinf(f)) else f
+                            except (ValueError, TypeError):
+                                return None
+
+                        def clean_int(val):
+                            if val is None or val == "":
+                                return None
+                            try:
+                                return int(val)
+                            except (ValueError, TypeError):
+                                return None
+
                         if not dados_gps or 'longitude' not in dados_gps: 
-                            print_log(f"Dados GPS de Teste: ", "warning")
-                            dados_gps = {"longitude" : -46.6388, "latitude" : -23.5489, "speed" : 0.0, "course" : 0.0}
+                            print_log(f"Dados GPS de Teste (Sem antena GPS ativa no terminal): ", "warning")
+                            dados_gps = {
+                                "longitude": -34.857254,
+                                "latitude": -8.005507,
+                                "velocidade": None,
+                                "direcao": None,
+                                "speed": None,
+                                "course": None,
+                                "elevacao": 15.0,
+                                "hdop": 0.9,
+                                "vdop": 1.2,
+                                "pdop": 1.5,
+                                "satelites_usados": 8,
+                                "satelites_visiveis": 12,
+                                "data_hora_utc": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                            }
                         
                         if dados_gps and 'longitude' in dados_gps:
-                            print_log(datetime.now().strftime("%d/%m/%Y %H:%M:%S"), "info", negrito=True)
+                            data_hora_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                            print_log(f"{data_hora_str}  |  🎤 Mic: {mic_ativo}", "info", negrito=True)
                             frames, audio = record_audio() #Começa a ouvir enquanto o espaço é pressionado
                             if frames != None and audio != None:
                                 filename = save_audio(frames, audio) # Salva o áudio ao soltar a tecla
                                 if filename and ".wav" in filename:
                                     
                                     transcription = transcribe_audio_whisper(AUDIO_PATH+filename)
-                                    print_log(f"Transcrição: {transcription}", "info")
+                                    print_log(f"Transcrição: {transcription}", "pink", negrito=True)
                                     
-                                    longitude = float(dados_gps['longitude'])
-                                    latitude = float(dados_gps['latitude'])
-                                    veloc = float(dados_gps.get('speed', 0.0))
-                                    direc = float(dados_gps.get('course', 0.0))
+                                    longitude = clean_float(dados_gps['longitude'])
+                                    latitude = clean_float(dados_gps['latitude'])
+                                    veloc = clean_float(dados_gps.get('velocidade', dados_gps.get('speed')))
+                                    direc = clean_float(dados_gps.get('direcao', dados_gps.get('course')))
                                     
-                                    elevacao = float(dados_gps.get('elevacao', 0.0))
-                                    hdop = float(dados_gps.get('hdop', 0.0))
-                                    vdop = float(dados_gps.get('vdop', 0.0))
-                                    pdop = float(dados_gps.get('pdop', 0.0))
-                                    try:
-                                        satelites_usados = int(dados_gps.get('satelites_usados', 0))
-                                    except TypeError:
-                                        satelites_usados = len(dados_gps.get('satelites_usados', []))
-                                    try:
-                                        satelites_visiveis = int(dados_gps.get('satelites_visiveis', 0))
-                                    except TypeError:
-                                        satelites_visiveis = len(dados_gps.get('satelites_visiveis', []))
-                                    data_hora_utc = str(dados_gps.get('data_hora_utc', ""))
+                                    elevacao = clean_float(dados_gps.get('elevacao'))
+                                    hdop = clean_float(dados_gps.get('hdop'))
+                                    vdop = clean_float(dados_gps.get('vdop'))
+                                    pdop = clean_float(dados_gps.get('pdop'))
+                                    satelites_usados = clean_int(dados_gps.get('satelites_usados'))
+                                    satelites_visiveis = clean_int(dados_gps.get('satelites_visiveis'))
+                                    data_hora_utc = str(dados_gps.get('data_hora_utc', "") or "")
                                     criado_em = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-                                    print_log(f"Coord Lat, Long: {latitude}, {longitude} | Direção: {direc} | Veloc: {veloc} | Elev: {elevacao} | Satélites: {satelites_usados}/{satelites_visiveis}", "info")
+                                    fmt_sat = f"{satelites_usados if satelites_usados is not None else 'null'}/{satelites_visiveis if satelites_visiveis is not None else 'null'}"
+                                    print_log(f"Coord Lat, Long: {latitude}, {longitude} | Direção: {direc if direc is not None else 'null'} | Veloc: {veloc if veloc is not None else 'null'} | Elev: {elevacao if elevacao is not None else 'null'} | Satélites: {fmt_sat}", "info")
                                     
                                     observacao = ""
 
