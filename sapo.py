@@ -78,7 +78,7 @@ class Sapo:
 
 
         # Criar botão para desc gps app
-        icon_desc_gps = os.path.join(self.plugin_dir, 'icons', 'icon.png')
+        icon_desc_gps = os.path.join(self.plugin_dir, 'icons', 'sapo_falando.png')
         self.desc_gps = QAction(QIcon(icon_desc_gps), "Inserir Ponto Descrição", self.iface.mainWindow())
         self.desc_gps.triggered.connect(self.insert_point_from_gps)
         self.toolbar.addAction(self.desc_gps)
@@ -90,7 +90,7 @@ class Sapo:
         self.toolbar.addAction(self.start_app_desc_app)
 
         # Criar botão para tocar áudio
-        icon_play = os.path.join(self.plugin_dir, 'icons', 'play.png')
+        icon_play = os.path.join(self.plugin_dir, 'icons', 'sapo_fone.png')
         self.play_action = QAction(QIcon(icon_play), "Play Áudio Descrição", self.iface.mainWindow())
         self.play_action.triggered.connect(self.play_audio)
         self.toolbar.addAction(self.play_action)
