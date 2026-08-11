@@ -77,32 +77,43 @@ class Sapo:
             self.iface.addToolBar(self.toolbar) # Adiciona a toolbar personalizada ao QGIS
 
 
+        from pathlib import Path
+        def make_tooltip(title, icon_path):
+            uri = Path(icon_path).as_uri()
+            return f"<div style='text-align: center; padding: 4px;'><img src='{uri}' width='150' height='150'><br><b style='font-size: 12px;'>{title}</b></div>"
+
         # Criar botão para desc gps app
-        icon_desc_gps = os.path.join(self.plugin_dir, 'icons', 'sapo_falando.png')
+        icon_desc_gps = os.path.join(self.plugin_dir, 'icons', 'sapo_reambulador_digitando.png')
         self.desc_gps = QAction(QIcon(icon_desc_gps), "Inserir Ponto Descrição", self.iface.mainWindow())
+        self.desc_gps.setToolTip(make_tooltip("Inserir Ponto Descrição", icon_desc_gps))
         self.desc_gps.triggered.connect(self.insert_point_from_gps)
         self.toolbar.addAction(self.desc_gps)
 
         # Criar botão para tocar start app audio descrição
-        icon_play = os.path.join(self.plugin_dir, 'icons', 'wave-sound.png')
-        self.start_app_desc_app = QAction(QIcon(icon_play), "Start App Audio Descrição", self.iface.mainWindow())
+        icon_start_app = os.path.join(self.plugin_dir, 'icons', 'sapo_falando.png')
+        self.start_app_desc_app = QAction(QIcon(icon_start_app), "Start App Audio Descrição", self.iface.mainWindow())
+        self.start_app_desc_app.setToolTip(make_tooltip("Start App Audio Descrição", icon_start_app))
         self.start_app_desc_app.triggered.connect(self.start_audio_desc_app)
         self.toolbar.addAction(self.start_app_desc_app)
 
         # Criar botão para tocar áudio
         icon_play = os.path.join(self.plugin_dir, 'icons', 'sapo_fone.png')
         self.play_action = QAction(QIcon(icon_play), "Play Áudio Descrição", self.iface.mainWindow())
+        self.play_action.setToolTip(make_tooltip("Play Áudio Descrição", icon_play))
         self.play_action.triggered.connect(self.play_audio)
         self.toolbar.addAction(self.play_action)
 
-        # Iniciar timer para exportar GPS para JSON (1 segundo)
+        # Configurar o timer para exportar GPS para JSON sob demanda
         from PyQt5.QtCore import QTimer
         self.gps_timer = QTimer()
         self.gps_timer.timeout.connect(self.update_gps_json)
-        self.gps_timer.start(1000)
 
-        # Configurar observador automático de arquivo (QFileSystemWatcher) para recarregar Pontos_Audio em tempo real
+        # Configurar observador de arquivo apenas para o dados_audio.geojson
         self.setup_audio_watcher()
+
+    def start_gps_timer_if_needed(self):
+        if hasattr(self, 'gps_timer') and not self.gps_timer.isActive():
+            self.gps_timer.start(1000)
 
     def setup_audio_watcher(self):
         try:
@@ -113,11 +124,9 @@ class Sapo:
             audio_geojson = os.path.join(geojson_dir, "dados_audio.geojson")
             
             self.audio_watcher = QFileSystemWatcher()
-            self.audio_watcher.addPath(geojson_dir)
             if os.path.exists(audio_geojson):
                 self.audio_watcher.addPath(audio_geojson)
                 
-            self.audio_watcher.directoryChanged.connect(self.reload_audio_layer)
             self.audio_watcher.fileChanged.connect(self.reload_audio_layer)
         except Exception:
             pass
@@ -193,6 +202,22 @@ class Sapo:
         try:
             import json
             d_gps = get_gps_position()
+            if not d_gps:
+                center_pt = get_center_tela()
+                if center_pt:
+                    d_gps = {
+                        "point": center_pt,
+                        "velocidade": 0.0,
+                        "direcao": 0.0,
+                        "elevacao": 0.0,
+                        "hdop": 0.0,
+                        "vdop": 0.0,
+                        "pdop": 0.0,
+                        "satelites_usados": 0,
+                        "satelites_visiveis": 0,
+                        "data_hora_utc": ""
+                    }
+
             if d_gps and "point" in d_gps:
                 data = {
                     "longitude": d_gps["point"].x(),
@@ -219,9 +244,11 @@ class Sapo:
         play_audio_main(self)
 
     def insert_point_from_gps(self):
+        self.start_gps_timer_if_needed()
         insert_point_from_gps_main(self)
 
     def start_audio_desc_app(self):
+        self.start_gps_timer_if_needed()
         try:
             programa = "sapo_audio_desc_point.exe"
             if is_program_running_windows(programa):

@@ -5,16 +5,20 @@ def converter_nos_km(nos):
     return float(nos) * 1.852
 
 def verificar_porta_com():
-    portas = ['COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6']
+    try:
+        import serial.tools.list_ports
+        portas = [p.device for p in serial.tools.list_ports.comports()]
+    except Exception:
+        portas = ['COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6']
     for p in portas:
         try:
-            with serial.Serial(p, 4800, timeout=1) as ser:
-                line = ser.readline()
-                if line and line.decode("ascii", errors="ignore").strip().startswith('$GPRMC'):
-                    print_log(f"GPS conectado na Porta: {p}", "info")
-                    return p
-        except Exception as e:
-            #print(e)
+            with serial.Serial(p, 4800, timeout=0.2) as ser:
+                for _ in range(5):
+                    line = ser.readline()
+                    if line and line.decode("ascii", errors="ignore").strip().startswith('$GPRMC'):
+                        print_log(f"GPS conectado na Porta: {p}", "info")
+                        return p
+        except Exception:
             pass
     return None
 
@@ -24,25 +28,22 @@ def conectar_gpsgate_virtual(com_port="COM3", baud_rate=4800):
     Exibe latitude, longitude, status, velocidade e direção.
     """
     try:
-        with serial.Serial(com_port, baud_rate, timeout=1) as ser:
-            #print(f"Conectado ao GpsGate, porta {com_port}")
+        with serial.Serial(com_port, baud_rate, timeout=0.2) as ser:
             dados = {}
-            while not "latitude" in dados and not "longitude" in dados:
+            for _ in range(10):
                 line = ser.readline()
                 if line:
                     try:
                         sentence = line.decode("ascii", errors="ignore").strip()
                         if sentence.startswith('$GPRMC'):
                             dados = processar_nmea_gprmc(sentence)
-                    except UnicodeDecodeError:
-                        print("Erro ao decodificar os dados recebidos.")
-                else:
-                    print("Sem dados recebidos. Verifique GPS 'Ctrl + C' para parar")
-            return dados
+                            if "latitude" in dados and "longitude" in dados:
+                                return dados
+                    except Exception:
+                        pass
+            return dados if ("latitude" in dados and "longitude" in dados) else None
     except Exception as e:
         print_log(f"Erro ao conectar GPS à porta {com_port}", "danger")
-    except KeyboardInterrupt:
-        print_log("Conexão encerrada pelo usuário.", "danger")
 
 def processar_nmea_gprmc(sentence):
     """

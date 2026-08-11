@@ -19,13 +19,24 @@ sys.path.append(Path(__file__).parent.parent)
 from modulos.utilidades import *
 
 def verificar_porta_com():
-    portas = ["COM1", "COM2", "COM3", "COM4", "COM5", "COM6"]
-    for p in portas:
+    global PORTA_COM
+    if PORTA_COM:
+        return PORTA_COM
+    try:
+        import serial.tools.list_ports
+        ports = [p.device for p in serial.tools.list_ports.comports()]
+    except Exception:
+        ports = ["COM1", "COM2", "COM3", "COM4", "COM5", "COM6"]
+
+    for p in ports:
         try:
-            with serial.Serial(p, BAUD_RATE, timeout=1) as ser:
-                if ser.readline().decode("ascii", errors="ignore").strip().startswith('$GPRMC'):
-                    return p
-        except Exception as e:
+            with serial.Serial(p, BAUD_RATE, timeout=0.2) as ser:
+                for _ in range(5):
+                    line = ser.readline()
+                    if line and line.decode("ascii", errors="ignore").strip().startswith('$GPRMC'):
+                        PORTA_COM = p
+                        return p
+        except Exception:
             pass
     return None
 
@@ -43,7 +54,7 @@ def get_center_tela():
 def get_gps_position():
     from qgis.core import QgsApplication
     
-    # 1. Tentar pegar do GPS nativo conectado ao QGIS (Garmin Spanner, etc)
+    # Usar exclusivamente o GPS nativo conectado ao QGIS
     try:
         registry = QgsApplication.gpsConnectionRegistry()
         connections = registry.connectionList()
@@ -72,35 +83,10 @@ def get_gps_position():
                     gps_data["data_hora_utc"] = ""
                     
                 return gps_data
-    except Exception as e:
-        pass # Se falhar, segue para o método antigo (porta serial direta)
+    except Exception:
+        pass
 
-    # 2. Fallback para o método antigo (GpsGate virtual via Porta COM)
-    dados_gps = conectar_gpsgate_virtual(com_port=PORTA_COM, baud_rate=4800) 
-    if(dados_gps and 'latitude' in dados_gps and 'longitude' in dados_gps):
-        longitude = float(dados_gps['longitude'])
-        latitude = float(dados_gps['latitude'])
-        if dados_gps['long_dir'] == "W":
-            longitude = -1 * longitude
-        if dados_gps['lat_dir'] == "S":
-            latitude = -1 * latitude
-        veloc = converter_nos_km(dados_gps['speed'])
-        direc = float(dados_gps['course'])
-        
-        return {
-            "point": QgsPointXY(longitude, latitude),
-            "velocidade": veloc,
-            "direcao": direc,
-            "elevacao": 0.0,
-            "hdop": 0.0,
-            "vdop": 0.0,
-            "pdop": 0.0,
-            "satelites_usados": 0,
-            "satelites_visiveis": 0,
-            "data_hora_utc": ""
-        }
-    else:
-        return None
+    return None
 
 def add_point_feature(self, description, d_gps):
     import json
@@ -236,7 +222,7 @@ def activate_point_tool(self):
     self.iface.mapCanvas().setMapTool(self.selection_tool)
 
 class CoordinatesInputDialog(QDialog):
-    def __init__(self, gps_position):
+    def __init__(self, gps_position, is_screen_center=False):
         super().__init__()
         self.setWindowTitle("Inserir Descrição e Coordenadas")
 
@@ -288,10 +274,26 @@ class CoordinatesInputDialog(QDialog):
 
         self.ok_button.clicked.connect(self.accept)
 
-        # Criar um diálogo personalizado
-        dialog = QDialog()
-        dialog.setWindowTitle("Inserir Descrição")
-        layout = QVBoxLayout(dialog)
+        layout = QVBoxLayout()
+
+        # Adicionar alerta visual se estiver utilizando o centro da tela
+        if is_screen_center:
+            alert_label = QLabel("⚠️ GPS Desconectado:\nUtilizando CENTRO DA TELA", self)
+            alert_label.setWordWrap(True)
+            alert_label.setMaximumWidth(310)
+            alert_label.setStyleSheet("""
+                QLabel {
+                    background-color: #FFF3CD;
+                    color: #856404;
+                    border: 2px solid #FFEEBA;
+                    border-radius: 8px;
+                    padding: 8px;
+                    font-weight: bold;
+                    font-size: 12px;
+                }
+            """)
+            alert_label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(alert_label)
 
         # Adicionar GIF animado
         gif_label = QLabel()
@@ -319,85 +321,41 @@ class CoordinatesInputDialog(QDialog):
             QMessageBox.warning(None, 'Erro', 'Coordenadas inválidas. Formato esperado: longitude, latitude.', "danger")
             return None
 
-def conectar_gpsgate_virtual(com_port="COM3", baud_rate=4800):
-    """
-    Conecta ao GpsGate Directed usando a porta COM virtual e captura sentenças NMEA.
-    Exibe latitude, longitude, status, velocidade e direção.
-    """
-    if com_port == None:
-        com_port = verificar_porta_com()
-        if com_port == None:
-            #QMessageBox.warning(None, 'Erro', f"Erro na porta {str(com_port)}", QMessageBox.Ok)
-            return None
-        else:
-            PORTA_COM = com_port
-
-    try:
-        with serial.Serial(com_port, baud_rate, timeout=1) as ser:
-            #print(f"Conectado ao GpsGate, porta {com_port}")
-            dados = {}
-            while not "latitude" in dados and not "longitude" in dados:
-                line = ser.readline()
-                if line:
-                    try:
-                        sentence = line.decode("ascii", errors="ignore").strip()
-                        if sentence.startswith('$GPRMC'):
-                            dados = processar_nmea_gprmc(sentence)
-                    except UnicodeDecodeError:
-                        QMessageBox.warning(None, 'Erro', "Erro ao decodificar os dados recebidos.", "danger")
-                else:
-                    QMessageBox.warning(None, 'Erro', "Sem dados recebidos. Verifique GPS", "danger")
-            return dados
-    except Exception as e:
-        QMessageBox.warning(None, 'Erro', f"Erro ao conectar GPS à porta {com_port}", "danger")
-    except KeyboardInterrupt:
-        QMessageBox.warning(None, 'Erro', "Conexão encerrada pelo usuário.", "danger")
+def conectar_gpsgate_virtual(com_port=None, baud_rate=4800):
+    return None
 
 def processar_nmea_gprmc(sentence):
-    """
-    Processa a sentença GPRMC para extrair latitude, longitude, status, velocidade e curso.
-    """
-    # A sentença GPRMC tem o seguinte formato:
-    # $GPRMC,123625,A,0800.2405,S,03451.5462,W,0.0,68.1,220125,22.2,W,A*01
-    # $GPRMC,<hora>,<status>,<latitude>,<N/S>,<longitude>,<E/W>,<velocidade>,<curso>,<data>,<variação_magnética>,<direção_magnética>,<validade>*<checksum>
-    try:
-        parts = sentence.split(',')
-
-        # Extração dos campos com base na posição
-        parsed_data = {
-            "type": parts[0],               # Tipo de sentença ($GPRMC)
-            "time": parts[1],               # Horário UTC (HHMMSS)
-            "status": parts[2],             # Status de navegação (A = ativo, V = inválido)
-            "latitude": parts[3],           # Latitude (graus e minutos)
-            "lat_dir": parts[4],            # Direção da latitude (N/S)
-            "longitude": parts[5],          # Longitude (graus e minutos)
-            "long_dir": parts[6],           # Direção da longitude (E/W)
-            "speed": parts[7],              # Velocidade sobre o solo (nós)
-            "course": parts[8],             # Rumo/direção (graus)
-            "date": parts[9],               # Data (DDMMYY)
-            "mag_var": parts[10],           # Variação magnética (graus)
-            "mag_dir": parts[11],           # Direção da variação magnética (E/W)
-            "checksum": parts[12]           # Checksum (*09 incluído)
-        }
-        #print(parsed_data)
-        return parsed_data
-    except Exception as e:
-        QMessageBox.warning(None, 'Erro', f"Erro ao obter dados da senteça {sentence}, {e}")
-        return {}
+    return {}
     
 def insert_point_from_gps_main(self):
 
-    # Obtenção das coordenadas do GPS
+    # Obtenção das coordenadas do GPS (com fallback instantâneo para centro da tela)
     d_gps = get_gps_position()
-    
+    is_screen_center = False
+
     if not d_gps:
-        QMessageBox.warning(None, 'Erro', 'GPS não disponível ou não conectado.')
-        return
+        center_pt = get_center_tela()
+        if not center_pt:
+            QMessageBox.warning(None, 'Erro', 'Não foi possível obter a posição do GPS nem o centro da tela.')
+            return
+        d_gps = {
+            "point": center_pt,
+            "velocidade": 0.0,
+            "direcao": 0.0,
+            "elevacao": 0.0,
+            "hdop": 0.0,
+            "vdop": 0.0,
+            "pdop": 0.0,
+            "satelites_usados": 0,
+            "satelites_visiveis": 0,
+            "data_hora_utc": ""
+        }
+        is_screen_center = True
 
     gps_position = d_gps["point"]
 
-    # Abrir diálogo para inserir descrição e coordenadas
-    dialog = CoordinatesInputDialog(gps_position)
+    # Abrir diálogo para inserir descrição e coordenadas com alerta visual caso seja centro da tela
+    dialog = CoordinatesInputDialog(gps_position, is_screen_center=is_screen_center)
     if dialog.exec_() == QDialog.Accepted:
         description = dialog.description.text()
         # Pegar as coordenadas do campo combinado
