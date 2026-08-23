@@ -27,28 +27,21 @@ Confira no vídeo abaixo a demonstração de funcionamento e exemplo prático de
 
 ---
 
-## 📥 Download do Executável Pronto (Para Usuários Comuns)
+## 📥 Download do Plugin Pronto (Para Usuários Comuns)
 
-Se você **não é desenvolvedor** e deseja utilizar o plugin sem precisar instalar o Python ou compilar o código:
+Se você **não é desenvolvedor** e deseja utilizar o plugin no QGIS sem precisar instalar o Python ou compilar o código:
 
-### 📦 Download pelas Partes do Repositório (Dividido em partes < 90 MB)
+### 📦 Download em 1 Clique (Google Drive)
 
-Como o executável completo compactado tem cerca de **790 MB** (devido ao PyTorch e modelos do Whisper) e o GitHub limita arquivos a 100 MB, o arquivo foi dividido na raiz do repositório em 9 partes: `SAPO_Audio_Point_v1.1.0.zip.001` até `SAPO_Audio_Point_v1.1.0.zip.009`.
+Baixe a versão mais recente empacotada em um único arquivo `.zip` diretamente do Google Drive:
 
-> 📌 **Como Extrair as Partes (Passo a Passo):**  
-> 
-> **Método A: Usando 7-Zip ou WinRAR (Recomendado)**
-> 1. Baixe todas as partes (`.zip.001`, `.zip.002` ... `.zip.009`) para a mesma pasta.
-> 2. Clique com o botão direito no arquivo **`SAPO_Audio_Point_v1.1.0.zip.001`**.
-> 3. Escolha **7-Zip > Extrair Aqui** ou **WinRAR > Extrair Aqui**. O descompactador unirá automaticamente todas as partes!
->
-> **Método B: Via Linha de Comando (Prompt do Windows / PowerShell)**
-> 1. Abra o Terminal/Prompt de Comando na pasta onde baixou as partes.
-> 2. Execute o comando para juntar as partes em um único `.zip`:
->    ```cmd
->    copy /b SAPO_Audio_Point_v1.1.0.zip.00* SAPO_Audio_Point_v1.1.0.zip
->    ```
-> 3. Clique duas vezes no arquivo `SAPO_Audio_Point_v1.1.0.zip` gerado e extraia a pasta `sapo_audio_desc_point`.
+👉 **[Baixar SAPO Plugin v1.1.0 (Google Drive)](https://drive.google.com/file/d/1Q2VHHKuQRt0TwLLK4VwFgPYyM242dYG3/view?usp=sharing)**
+
+> 📌 **Como Instalar (Passo a Passo):**  
+> 1. Baixe o arquivo `.zip` pelo link do Google Drive acima.
+> 2. Extraia o conteúdo diretamente na pasta de plugins do QGIS:  
+>    `C:\Users\<SeuUsuario>\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins\`
+> 3. Abra o QGIS, vá em **Complementos > Gerenciar e Instalar Complementos** e ative o **Sapo Plugin**.
 
 ---
 
@@ -73,9 +66,6 @@ SAPO_Reambulador_voz/
 │   └── requirements.txt
 ├── icons/                       # Ícones e recursos visuais do plugin
 └── libs/                        # Dependências auxiliares do plugin
-└── sapo_audio_desc_point/      # Baixar via link acima ( Para usuáriso comuns)
-   ├── sapo_audio_desc_point.exe       
-   ├── _internal/ 
 ```
 
 ---

@@ -11,6 +11,8 @@ current_gps.json
 
 # Pasta do executável gerado e ambiente de dev
 sapo_audio_desc_point/
+*.zip
+*.zip.*
 audio_desc_app/.venv_dev/
 audio_desc_app/Lib/
 audio_desc_app/Scripts/
