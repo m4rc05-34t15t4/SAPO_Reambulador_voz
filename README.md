@@ -17,6 +17,16 @@ O sistema gera e sincroniza em tempo real camadas geográficas em formato **GeoJ
 
 ---
 
+## 🎬 Exemplo de Uso (Vídeo de Demonstração)
+
+Confira no vídeo abaixo a demonstração de funcionamento e exemplo prático de uso do plugin **SAPO - Reambulação Por Voz**:
+
+<video src="Reambulação Por Voz.mp4" controls width="100%"></video>
+
+> 📌 *Caso esteja visualizando este repositório no GitHub ou visualizador compatível, o vídeo pode ser assistido diretamente acima ou baixando o arquivo [`Reambulação Por Voz.mp4`](Reambulação%20Por%20Voz.mp4).*
+
+---
+
 ## 📥 Download do Executável Pronto (Para Usuários Comuns)
 
 Se você **não é desenvolvedor** e deseja utilizar o plugin sem precisar instalar o Python ou compilar o código:
@@ -48,6 +58,7 @@ Como o executável completo compactado tem cerca de **790 MB** (devido ao PyTorc
 SAPO_Reambulador_voz/
 ├── sapo.py                      # Arquivo principal do plugin QGIS
 ├── metadata.txt                 # Metadados do plugin QGIS
+├── Reambulação Por Voz.mp4       # Vídeo de demonstração do funcionamento do plugin
 ├── modulos/                     # Módulos internos do plugin (Interface, GPS, Utilitários)
 │   ├── desc_gps_app.py
 │   ├── audio_desc_app.py

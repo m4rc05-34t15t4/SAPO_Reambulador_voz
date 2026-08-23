@@ -217,21 +217,63 @@ def record_audio():
         if MICROFONE_SELECIONADO_NOME is None:
             MICROFONE_SELECIONADO_INDEX, MICROFONE_SELECIONADO_NOME = abrir_janela_selecao_microfone()
 
-        open_kwargs = {
-            "format": FORMAT,
-            "channels": CHANNELS,
-            "rate": RATE,
-            "input": True,
-            "frames_per_buffer": CHUNK
-        }
+        # Lista de taxas de amostragem para testar (48kHz é padrão em muitos notebooks modernos)
+        rates_testar = [RATE, 48000, 16000, 22050, 8000]
+        
+        # Tentar obter a taxa nativa do dispositivo selecionado
         if MICROFONE_SELECIONADO_INDEX is not None:
-            open_kwargs["input_device_index"] = MICROFONE_SELECIONADO_INDEX
+            try:
+                dev_info = audio.get_device_info_by_index(MICROFONE_SELECIONADO_INDEX)
+                native_rate = int(dev_info.get('defaultSampleRate', 0))
+                if native_rate > 0 and native_rate not in rates_testar:
+                    rates_testar.insert(0, native_rate)
+                elif native_rate in rates_testar:
+                    rates_testar.remove(native_rate)
+                    rates_testar.insert(0, native_rate)
+            except Exception:
+                pass
 
-        try:
-            stream = audio.open(**open_kwargs)
-        except Exception as e:
-            print_log(f"Aviso ({MICROFONE_SELECIONADO_NOME}): {e}. Tentando entrada padrão...", "warning")
-            stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
+        stream = None
+        taxa_usada = RATE
+
+        # Tentar abrir o microfone selecionado testando taxas de amostragem e canais
+        for r in rates_testar:
+            for ch in [CHANNELS, 2, 1]:
+                try:
+                    open_kwargs = {
+                        "format": FORMAT,
+                        "channels": ch,
+                        "rate": r,
+                        "input": True,
+                        "frames_per_buffer": CHUNK
+                    }
+                    if MICROFONE_SELECIONADO_INDEX is not None:
+                        open_kwargs["input_device_index"] = MICROFONE_SELECIONADO_INDEX
+
+                    stream = audio.open(**open_kwargs)
+                    taxa_usada = r
+                    break
+                except Exception:
+                    continue
+            if stream is not None:
+                break
+
+        # Fallback: tentar entrada padrão do sistema se a específica falhar
+        if stream is None:
+            print_log(f"Aviso ({MICROFONE_SELECIONADO_NOME}): Falha ao abrir dispositivo específico. Tentando entrada padrão do sistema...", "warning")
+            for r in rates_testar:
+                for ch in [CHANNELS, 2, 1]:
+                    try:
+                        stream = audio.open(format=FORMAT, channels=ch, rate=r, input=True, frames_per_buffer=CHUNK)
+                        taxa_usada = r
+                        break
+                    except Exception:
+                        continue
+                if stream is not None:
+                    break
+
+        if stream is None:
+            raise RuntimeError("Não foi possível abrir o dispositivo de gravação de áudio com nenhuma taxa de amostragem suportada.")
 
         indicador = IndicadorGravacao()
         frames = []
@@ -252,13 +294,13 @@ def record_audio():
             stream.stop_stream()
             stream.close()
             audio.terminate()
-            return frames, audio
+            return frames, audio, taxa_usada
 
     except Exception as e:
         print_log(f"Erro no Microfone: {e}", "danger")
-        return None, None
+        return None, None, RATE
 
-def save_audio(frames, audio):
+def save_audio(frames, audio, rate=RATE):
     """Salva os frames de áudio em um arquivo WAV."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     if not frames:
@@ -273,7 +315,7 @@ def save_audio(frames, audio):
     with wave.open(filename, 'wb') as wf:
         wf.setnchannels(CHANNELS)
         wf.setsampwidth(audio.get_sample_size(FORMAT))
-        wf.setframerate(RATE)
+        wf.setframerate(rate)
         wf.writeframes(b''.join(frames))
     print_log(f"Áudio salvo: {filename}", "info")
     return nome
@@ -290,9 +332,14 @@ if __name__ == "__main__":
         while keyboard.is_pressed("space"):
             if time.time() - press_time >= TEMPO_MIN_SEGUNDOS:
                 print_log("Tempo atingido, iniciando gravação...", "info")
-                frames, audio = record_audio()  # Começa a ouvir enquanto o espaço é pressionado
-                if frames != None and audio != None:
-                    save_audio(frames, audio)      # Salva o áudio ao soltar a tecla
+                res = record_audio()  # Começa a ouvir enquanto o espaço é pressionado
+                if len(res) == 3:
+                    frames, audio, rate = res
+                else:
+                    frames, audio, rate = res[0], res[1], RATE
+
+                if frames is not None and audio is not None:
+                    save_audio(frames, audio, rate)      # Salva o áudio ao soltar a tecla
                 break
         """
         else:

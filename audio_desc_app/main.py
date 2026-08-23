@@ -98,9 +98,14 @@ if __name__ == "__main__":
                         if dados_gps and 'longitude' in dados_gps:
                             data_hora_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
                             print_log(f"{data_hora_str}  |  🎤 Mic: {mic_ativo}", "info", negrito=True)
-                            frames, audio = record_audio() #Começa a ouvir enquanto o espaço é pressionado
-                            if frames != None and audio != None:
-                                filename = save_audio(frames, audio) # Salva o áudio ao soltar a tecla
+                            res = record_audio() #Começa a ouvir enquanto o espaço é pressionado
+                            if len(res) == 3:
+                                frames, audio, rate = res
+                            else:
+                                frames, audio, rate = res[0], res[1], RATE
+
+                            if frames is not None and audio is not None:
+                                filename = save_audio(frames, audio, rate) # Salva o áudio ao soltar a tecla
                                 if filename and ".wav" in filename:
                                     
                                     transcription = transcribe_audio_whisper(AUDIO_PATH+filename)
