@@ -19,11 +19,11 @@ O sistema gera e sincroniza em tempo real camadas geográficas em formato **GeoJ
 
 ## 🎬 Exemplo de Uso (Vídeo de Demonstração)
 
-Confira no vídeo abaixo a demonstração de funcionamento e exemplo prático de uso do plugin **SAPO - Reambulação Por Voz**:
+Confira no GIF animado abaixo a demonstração de funcionamento e exemplo prático de uso do plugin **SAPO - Reambulação Por Voz**:
 
-<video src="Reambulação Por Voz.mp4" controls width="100%"></video>
+![Demonstração de Uso do SAPO](icons/sapo_reambulador_digitando_video.gif)
 
-> 📌 *Caso esteja visualizando este repositório no GitHub ou visualizador compatível, o vídeo pode ser assistido diretamente acima ou baixando o arquivo [`Reambulação Por Voz.mp4`](Reambulação%20Por%20Voz.mp4).*
+👉 **[▶️ Clique aqui para baixar / assistir ao vídeo em alta qualidade (Reambulação Por Voz.mp4)](Reambulação%20Por%20Voz.mp4)**
 
 ---
 
